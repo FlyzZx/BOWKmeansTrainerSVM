@@ -46,7 +46,8 @@ public class LogoFinder {
 		histo.show(histo.getHistogramImage(hist), name);
 	}
 
-	private Mat buildVocabulary(File[] imagesTrain) {
+	public Mat buildVocabulary() {
+		File[] imagesTrain = rootDir.listFiles();
 		File voc = new File("vocabulary/vocab.yml");
 		if (voc.exists()) {
 			FileStorage loader = new FileStorage(voc.getAbsolutePath(), FileStorage.READ);
@@ -88,7 +89,7 @@ public class LogoFinder {
 	}
 
 	public void train() {
-		buildVocabulary(this.rootDir.listFiles());
+		buildVocabulary();
 		//showHist(this.vocabulary, "Vocabulaire");
 		Mat samples = new Mat();
 		BOWImgDescriptorExtractor extractor = new BOWImgDescriptorExtractor(
@@ -108,7 +109,6 @@ public class LogoFinder {
 			Mat histo = new Mat();
 
 			extractor.compute(clust, histo);
-			//showHist(histo, trainImg.getName());
 			samples.push_back(histo);
 		}
 
@@ -184,11 +184,14 @@ public class LogoFinder {
 		Mat histo = new Mat();
 		System.out.println("Calculate words frequencies's histogram");
 		extractor.compute(clust, histo);
-
 		for(String classP : classPath) {
-			SVM svm = SVM.load(classP);
-			float ret = svm.predict(histo);
-			System.out.println("Prediction for class " + classP + " : " + ret);
+			SVM svm = SVM.create();
+			svm = SVM.load(classP);
+			Mat retM = new Mat();
+			float ret = svm.predict(histo, retM, 1);
+
+			System.out.print("Prediction for class " + classP + " : ");
+			showMat(retM);
 		}
 	}
 
