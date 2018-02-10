@@ -32,9 +32,14 @@ import fz.imt.opencv.utils.Hist1D;
 public class LogoFinder {
 
 	private File rootDir;
-	private int maxWords = 50;
+	private int maxWords = 200;
 	private Mat vocabulary = null;
 	private List<SVM> classifiers = null;
+	private int nFeatures = 0;
+	private int nOctaveLayers = 3;
+	private double contrastThreshold = 0.04;
+	private double edgeThreshold = 10;
+	private double sigma = 1.6;
 
 	public LogoFinder(String rootDirPath) {
 		this.rootDir = new File(rootDirPath);
@@ -59,9 +64,10 @@ public class LogoFinder {
 			int i = 0;
 			for (File imgTrain : imagesTrain) {
 				Mat trainMat = opencv_imgcodecs.imread(imgTrain.getAbsolutePath());
+				opencv_imgproc.resize(trainMat, trainMat, new opencv_core.Size(500, 500));
 				KeyPointVector keypoints = new KeyPointVector();
 				Mat descriptor = new Mat();
-				SIFT sift = SIFT.create();
+				SIFT sift = SIFT.create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
 				sift.detectAndCompute(trainMat, new Mat(), keypoints, descriptor);
 				trainer.add(descriptor);
 				System.out.println("Train Vocabulary " + (i + 1));
@@ -98,13 +104,14 @@ public class LogoFinder {
 
 		for (File trainImg : this.rootDir.listFiles()) {
 			Mat trainMat = opencv_imgcodecs.imread(trainImg.getAbsolutePath());
-			opencv_imgproc.resize(trainMat, trainMat, new opencv_core.Size(400, 400));
+			opencv_imgproc.resize(trainMat, trainMat, new opencv_core.Size(500, 500));
 			Mat descriptor = new Mat();
 			KeyPointVector keypoints = new KeyPointVector();
-			SIFT sift = SIFT.create();
+            SIFT sift = SIFT.create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
 			sift.detectAndCompute(trainMat, new Mat(), keypoints, descriptor);
 			BOWKMeansTrainer trainer = new BOWKMeansTrainer(this.maxWords);
 			trainer.add(descriptor);
+			System.out.println("Clustering features into words for " + trainImg.getName());
 			Mat clust = trainer.cluster();
 			Mat histo = new Mat();
 
@@ -155,7 +162,7 @@ public class LogoFinder {
 		}
 	}
 
-	public void predict(String filePath) {
+	public String predict(String filePath) {
 		//Chargement des classifieurs en mémoire
 		ArrayList<String> classPath = new ArrayList<>();
 		File classiLocation = new File("classifier");
@@ -171,10 +178,10 @@ public class LogoFinder {
 		//Prédiction
 		System.out.println("Predicting file " + filePath);
 		Mat testImg = opencv_imgcodecs.imread(filePath);
-		opencv_imgproc.resize(testImg, testImg, new opencv_core.Size(400, 400));
+		opencv_imgproc.resize(testImg, testImg, new opencv_core.Size(500, 500));
 		Mat descriptor = new Mat();
 		KeyPointVector keypoints = new KeyPointVector();
-		SIFT sift = SIFT.create();
+        SIFT sift = SIFT.create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
 		System.out.println("Detecting features");
 		sift.detectAndCompute(testImg, new Mat(), keypoints, descriptor);
 		BOWKMeansTrainer trainer = new BOWKMeansTrainer(this.maxWords);
@@ -184,15 +191,28 @@ public class LogoFinder {
 		Mat histo = new Mat();
 		System.out.println("Calculate words frequencies's histogram");
 		extractor.compute(clust, histo);
+
+        float minF = Float.MAX_VALUE;
+        String bestMatch = null;
 		for(String classP : classPath) {
 			SVM svm = SVM.create();
 			svm = SVM.load(classP);
 			Mat retM = new Mat();
 			float ret = svm.predict(histo, retM, 1);
 
-			System.out.print("Prediction for class " + classP + " : ");
-			showMat(retM);
+            FloatRawIndexer indexer = retM.createIndexer();
+            if(retM.cols() > 0 && retM.rows() > 0) {
+                ret = indexer.get(0, 0); //Récupération de la valeur dans la MAT
+            }
+            if(ret < minF) {
+                minF = ret;
+                bestMatch = classP;
+            }
+            System.out.println("Prediction for class " + classP + " : " + ret);
 		}
+
+		System.out.println("Prediction for file " + filePath + " is " + bestMatch + " : " + minF);
+		return bestMatch;
 	}
 
 	public File getRootDir() {
@@ -219,4 +239,43 @@ public class LogoFinder {
 		this.vocabulary = vocabulary;
 	}
 
+    public int getnFeatures() {
+        return nFeatures;
+    }
+
+    public void setnFeatures(int nFeatures) {
+        this.nFeatures = nFeatures;
+    }
+
+    public int getnOctaveLayers() {
+        return nOctaveLayers;
+    }
+
+    public void setnOctaveLayers(int nOctaveLayers) {
+        this.nOctaveLayers = nOctaveLayers;
+    }
+
+    public double getContrastThreshold() {
+        return contrastThreshold;
+    }
+
+    public void setContrastThreshold(double contrastThreshold) {
+        this.contrastThreshold = contrastThreshold;
+    }
+
+    public double getEdgeThreshold() {
+        return edgeThreshold;
+    }
+
+    public void setEdgeThreshold(double edgeThreshold) {
+        this.edgeThreshold = edgeThreshold;
+    }
+
+    public double getSigma() {
+        return sigma;
+    }
+
+    public void setSigma(double sigma) {
+        this.sigma = sigma;
+    }
 }

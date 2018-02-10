@@ -28,7 +28,11 @@ public class MainClass {
 		System.out.println("Librairies charg�es !");
 		HashMap<Integer, String> mappingClass = new HashMap<>();
 		
-		LogoFinder fz = new LogoFinder("TrainImage/");
+		LogoFinder fz = new LogoFinder("DataImage/");
+		//SIFT PARAMETERS
+		fz.setSigma(1.4);
+		fz.setMaxWords(100);
+
 		fz.train();
 		File cocaTrain = new File("coca_train.jpg");
 		fz.predict(cocaTrain.getAbsolutePath());
