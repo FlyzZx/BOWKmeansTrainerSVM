@@ -1,26 +1,24 @@
 package fz.imt;
 
-import java.io.File;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.bytedeco.javacpp.*;
+import org.bytedeco.javacpp.IntPointer;
+import org.bytedeco.javacpp.indexer.FloatRawIndexer;
+import org.bytedeco.javacpp.opencv_core;
 import org.bytedeco.javacpp.opencv_core.FileStorage;
 import org.bytedeco.javacpp.opencv_core.KeyPointVector;
 import org.bytedeco.javacpp.opencv_core.Mat;
 import org.bytedeco.javacpp.opencv_features2d.BOWImgDescriptorExtractor;
 import org.bytedeco.javacpp.opencv_features2d.BOWKMeansTrainer;
 import org.bytedeco.javacpp.opencv_features2d.DescriptorMatcher;
+import org.bytedeco.javacpp.opencv_imgcodecs;
+import org.bytedeco.javacpp.opencv_imgproc;
+import org.bytedeco.javacpp.opencv_ml;
 import org.bytedeco.javacpp.opencv_ml.SVM;
 import org.bytedeco.javacpp.opencv_xfeatures2d.SIFT;
-import org.bytedeco.javacpp.indexer.ByteIndexer;
-import org.bytedeco.javacpp.indexer.FloatRawIndexer;
-import org.bytedeco.javacpp.indexer.Indexer;
-import org.bytedeco.javacpp.indexer.IntIndexer;
-import org.bytedeco.javacpp.indexer.IntRawIndexer;
 
-import fz.imt.opencv.utils.Hist1D;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+
 
 /**
  * Creer le dictionnaire Creer les histogrammes descripteurs des images de train
@@ -34,32 +32,32 @@ public class LogoFinder {
 	private File rootDir;
 	private int maxWords = 200;
 	private Mat vocabulary = null;
-	private List<SVM> classifiers = null;
 	private int nFeatures = 0;
 	private int nOctaveLayers = 3;
 	private double contrastThreshold = 0.04;
 	private double edgeThreshold = 10;
 	private double sigma = 1.6;
+	private String vocabularyDir = "";
+	private String classifierDir = "";
+
+	public LogoFinder() {
+		this.rootDir = null;
+	}
 
 	public LogoFinder(String rootDirPath) {
 		this.rootDir = new File(rootDirPath);
 	}
-	
-	public void showHist(Mat hist, String name) {
-		Hist1D histo = new Hist1D();
-		//histo.setNumberOfBins(hist.rows());
-		histo.show(histo.getHistogramImage(hist), name);
-	}
 
-	public Mat buildVocabulary() {
-		File[] imagesTrain = rootDir.listFiles();
-		File voc = new File("vocabulary/vocab.yml");
+	private Mat buildVocabulary() {
+
+		File voc = new File(this.vocabularyDir + "/vocab.yml");
 		if (voc.exists()) {
 			FileStorage loader = new FileStorage(voc.getAbsolutePath(), FileStorage.READ);
 			this.vocabulary = loader.get("vocabulary").mat();
 			loader.close();
-			System.out.println("Vocabulaire chargé !");
-		} else if (imagesTrain != null) {
+			System.out.println("Vocabulaire chargÃ© !");
+		} else if (rootDir != null) {
+			File[] imagesTrain = rootDir.listFiles();
 			BOWKMeansTrainer trainer = new BOWKMeansTrainer(this.maxWords);
 			int i = 0;
 			for (File imgTrain : imagesTrain) {
@@ -75,7 +73,7 @@ public class LogoFinder {
 			}
 			this.vocabulary = trainer.cluster();
 
-			FileStorage ds = new FileStorage("vocabulary/vocab.yml", FileStorage.WRITE);
+			FileStorage ds = new FileStorage(this.vocabularyDir + "/vocab.yml", FileStorage.WRITE);
 			ds.write("vocabulary", this.vocabulary);
 			ds.close();
 			return this.vocabulary;
@@ -130,7 +128,7 @@ public class LogoFinder {
 
 			if (globalIndex != 0 && (!class_name.equals(trainImg.getName().split("_")[0])
 					|| globalIndex == this.rootDir.listFiles().length - 1)) {
-				File classLocation = new File("classifier/" + class_name + ".xml");
+				File classLocation = new File(this.classifierDir + "/" + class_name + ".xml");
 				if(classLocation.exists()) {
 					System.out.println("Existing SVM for classe " + class_name);
 				} else {
@@ -150,7 +148,7 @@ public class LogoFinder {
 					svm.setKernel(SVM.RBF);
 					svm.setType(SVM.C_SVC);
 					svm.train(samples, opencv_ml.ROW_SAMPLE, labels);
-					svm.save("classifier/" + class_name + ".xml");
+					svm.save(this.classifierDir + "/" + class_name + ".xml");
 				}
 			}
 			if (!class_name.equals(trainImg.getName().split("_")[0])) {
@@ -163,19 +161,24 @@ public class LogoFinder {
 	}
 
 	public String predict(String filePath) {
-		//Chargement des classifieurs en mémoire
+		//On vÃ©rifie l'existence du vocabulaire
+		if(vocabulary == null){
+			buildVocabulary();
+		}
+
+		//Chargement des classifieurs en mï¿½moire
 		ArrayList<String> classPath = new ArrayList<>();
-		File classiLocation = new File("classifier");
+		File classiLocation = new File(this.classifierDir);
 		for(File classiFile : classiLocation.listFiles()) {
 			classPath.add(classiFile.getAbsolutePath());
 		}
 
-		//Chargement du vocabulaire en mémoire
+		//Chargement du vocabulaire en mï¿½moire
 		BOWImgDescriptorExtractor extractor = new BOWImgDescriptorExtractor(
 				DescriptorMatcher.create(DescriptorMatcher.FLANNBASED));
 		extractor.setVocabulary(this.vocabulary);
 
-		//Prédiction
+		//Prï¿½diction
 		System.out.println("Predicting file " + filePath);
 		Mat testImg = opencv_imgcodecs.imread(filePath);
 		opencv_imgproc.resize(testImg, testImg, new opencv_core.Size(500, 500));
@@ -202,7 +205,7 @@ public class LogoFinder {
 
             FloatRawIndexer indexer = retM.createIndexer();
             if(retM.cols() > 0 && retM.rows() > 0) {
-                ret = indexer.get(0, 0); //Récupération de la valeur dans la MAT
+                ret = indexer.get(0, 0); //Rï¿½cupï¿½ration de la valeur dans la MAT
             }
             if(ret < minF) {
                 minF = ret;
@@ -278,4 +281,20 @@ public class LogoFinder {
     public void setSigma(double sigma) {
         this.sigma = sigma;
     }
+
+	public String getVocabularyDir() {
+		return vocabularyDir;
+	}
+
+	public void setVocabularyDir(String vocabularyDir) {
+		this.vocabularyDir = vocabularyDir;
+	}
+
+	public String getClassifierDir() {
+		return classifierDir;
+	}
+
+	public void setClassifierDir(String classifierDir) {
+		this.classifierDir = classifierDir;
+	}
 }
