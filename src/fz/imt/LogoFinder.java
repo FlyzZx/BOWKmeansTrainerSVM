@@ -2,6 +2,7 @@ package fz.imt;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.bytedeco.javacpp.*;
@@ -46,14 +47,13 @@ public class LogoFinder {
 	}
 
 	private Mat buildVocabulary(File[] imagesTrain) {
-		File voc = new File("classifier/vocab.yml");
-		if(voc.exists()) {
+		File voc = new File("vocabulary/vocab.yml");
+		if (voc.exists()) {
 			FileStorage loader = new FileStorage(voc.getAbsolutePath(), FileStorage.READ);
 			this.vocabulary = loader.get("vocabulary").mat();
 			loader.close();
 			System.out.println("Vocabulaire chargé !");
-		}
-		else if (imagesTrain != null) {
+		} else if (imagesTrain != null) {
 			BOWKMeansTrainer trainer = new BOWKMeansTrainer(this.maxWords);
 			int i = 0;
 			for (File imgTrain : imagesTrain) {
@@ -67,8 +67,8 @@ public class LogoFinder {
 				i++;
 			}
 			this.vocabulary = trainer.cluster();
-			
-			FileStorage ds = new FileStorage("classifier/vocab.yml", FileStorage.WRITE);
+
+			FileStorage ds = new FileStorage("vocabulary/vocab.yml", FileStorage.WRITE);
 			ds.write("vocabulary", this.vocabulary);
 			ds.close();
 			return this.vocabulary;
@@ -123,35 +123,73 @@ public class LogoFinder {
 
 			if (globalIndex != 0 && (!class_name.equals(trainImg.getName().split("_")[0])
 					|| globalIndex == this.rootDir.listFiles().length - 1)) {
-				System.out.println("Save SVM for classe " + class_name);
-				indexStop = globalIndex;
-				if(globalIndex == this.rootDir.listFiles().length - 1) indexStop = resp.length;
-				for(int j = 0; j < resp.length; j++) {
-					if(j >= indexStart && j < indexStop) {
-						resp[j] = 1;
-					} else resp[j] = -1;
+				File classLocation = new File("classifier/" + class_name + ".xml");
+				if(classLocation.exists()) {
+					System.out.println("Existing SVM for classe " + class_name);
+				} else {
+					System.out.println("Save SVM for classe " + class_name);
+					indexStop = globalIndex;
+					if(globalIndex == this.rootDir.listFiles().length - 1) indexStop = resp.length;
+					for(int j = 0; j < resp.length; j++) {
+						if(j >= indexStart && j < indexStop) {
+							resp[j] = 1;
+						} else resp[j] = 0;
+					}
+					indexStart = indexStop;
+					IntPointer pointerInt = new IntPointer(resp);
+					Mat labels = new Mat(pointerInt);
+
+					SVM svm = SVM.create();
+					svm.setKernel(SVM.RBF);
+					svm.setType(SVM.C_SVC);
+					svm.train(samples, opencv_ml.ROW_SAMPLE, labels);
+					svm.save("classifier/" + class_name + ".xml");
 				}
-				indexStart = indexStop;
-				IntPointer pointerInt = new IntPointer(resp);
-				Mat labels = new Mat(pointerInt);
-
-				SVM svm = SVM.create();
-				svm.setKernel(SVM.RBF);
-				svm.setType(SVM.C_SVC);
-				svm.train(samples, opencv_ml.ROW_SAMPLE, labels);
-				svm.save("classifier/" + class_name + ".xml");
-
-				int a = 0;
 			}
 			if (!class_name.equals(trainImg.getName().split("_")[0])) {
 				class_name = trainImg.getName().split("_")[0];
-				System.out.println("Train class " + class_name);
+				System.out.println("Changing Train class " + class_name);
 			}
 
 			globalIndex++;
 		}
+	}
 
+	public void predict(String filePath) {
+		//Chargement des classifieurs en mémoire
+		ArrayList<String> classPath = new ArrayList<>();
+		File classiLocation = new File("classifier");
+		for(File classiFile : classiLocation.listFiles()) {
+			classPath.add(classiFile.getAbsolutePath());
+		}
 
+		//Chargement du vocabulaire en mémoire
+		BOWImgDescriptorExtractor extractor = new BOWImgDescriptorExtractor(
+				DescriptorMatcher.create(DescriptorMatcher.FLANNBASED));
+		extractor.setVocabulary(this.vocabulary);
+
+		//Prédiction
+		System.out.println("Predicting file " + filePath);
+		Mat testImg = opencv_imgcodecs.imread(filePath);
+		opencv_imgproc.resize(testImg, testImg, new opencv_core.Size(400, 400));
+		Mat descriptor = new Mat();
+		KeyPointVector keypoints = new KeyPointVector();
+		SIFT sift = SIFT.create();
+		System.out.println("Detecting features");
+		sift.detectAndCompute(testImg, new Mat(), keypoints, descriptor);
+		BOWKMeansTrainer trainer = new BOWKMeansTrainer(this.maxWords);
+		trainer.add(descriptor);
+		System.out.println("Clustering features into words");
+		Mat clust = trainer.cluster();
+		Mat histo = new Mat();
+		System.out.println("Calculate words frequencies's histogram");
+		extractor.compute(clust, histo);
+
+		for(String classP : classPath) {
+			SVM svm = SVM.load(classP);
+			float ret = svm.predict(histo);
+			System.out.println("Prediction for class " + classP + " : " + ret);
+		}
 	}
 
 	public File getRootDir() {

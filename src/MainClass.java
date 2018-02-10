@@ -34,11 +34,15 @@ public class MainClass {
 
 	public static void main(String[] args) {
 		Loader.load(opencv_core.class);
-		System.out.println("Librairies chargées !");
+		System.out.println("Librairies chargï¿½es !");
 		HashMap<Integer, String> mappingClass = new HashMap<>();
 		
 		LogoFinder fz = new LogoFinder("TrainImage/");
 		fz.train();
+		File cocaTrain = new File("coca_train.jpg");
+		fz.predict(cocaTrain.getAbsolutePath());
+		File pepsiTrain = new File("pepsi_test.jpg");
+		fz.predict(pepsiTrain.getAbsolutePath());
 		int a = 0;
 		/**
 		 * Training
@@ -113,7 +117,7 @@ public class MainClass {
 		svm.train(trainDatas, opencv_ml.ROW_SAMPLE, labels);
 		svm.save("classifier/classify.xml");
 
-		System.out.println("Training terminé");*/
+		System.out.println("Training terminï¿½");*/
 	}
 
 }
