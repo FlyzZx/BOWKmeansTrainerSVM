@@ -36,6 +36,12 @@ public class MainClass {
 		fz.predict(pepsiTrain.getAbsolutePath());
 		File spriteTrain = new File("sprite_test.jpg");
 		fz.predict(spriteTrain.getAbsolutePath());
+		File cocaLogo = new File("coca_logo.png");
+		fz.predict(cocaLogo.getAbsolutePath());
+		File pepsTrans = new File("pepsi_logo_trans.png");
+		fz.predict(pepsTrans.getAbsolutePath());
+		File spriteLogo = new File("sprite_logo.jpg");
+		fz.predict(spriteLogo.getAbsolutePath());
 	}
 
 }
