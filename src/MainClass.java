@@ -16,6 +16,8 @@ import org.bytedeco.javacpp.opencv_features2d.BOWKMeansTrainer;
 import org.bytedeco.javacpp.opencv_ml.SVM;
 import org.bytedeco.javacpp.opencv_xfeatures2d.SIFT;
 
+import fz.imt.LogoFinder;
+
 import static org.bytedeco.javacpp.opencv_imgcodecs.*;
 import static org.bytedeco.javacpp.opencv_imgproc.resize;
 
@@ -34,11 +36,14 @@ public class MainClass {
 		Loader.load(opencv_core.class);
 		System.out.println("Librairies chargées !");
 		HashMap<Integer, String> mappingClass = new HashMap<>();
-
+		
+		LogoFinder fz = new LogoFinder("TrainImage/");
+		fz.train();
+		int a = 0;
 		/**
 		 * Training
 		 */
-		File trainDir = new File("TrainImage");
+		/*File trainDir = new File("TrainImage");
 		File[] trainImages = trainDir.listFiles();
 		// Contruction des labels
 		String class_name = "";
@@ -88,7 +93,7 @@ public class MainClass {
 			/*while(descriptor.rows() > nfeatures) 
 				descriptor.pop_back();*/
 			
-			descriptor = bowTrain.cluster().reshape(1, 1);
+			/*descriptor = bowTrain.cluster().reshape(1, 1);
 			
 			trainDatas.push_back(descriptor);
 			index++;
@@ -108,7 +113,7 @@ public class MainClass {
 		svm.train(trainDatas, opencv_ml.ROW_SAMPLE, labels);
 		svm.save("classifier/classify.xml");
 
-		System.out.println("Training terminé");
+		System.out.println("Training terminé");*/
 	}
 
 }
