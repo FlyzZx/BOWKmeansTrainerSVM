@@ -27,5 +27,10 @@
     <artifactId>javacv</artifactId>
     <version>1.4</version>
 </dependency>
+    <dependency>
+      <groupId>org.eclipse.ecf</groupId>
+      <artifactId>org.json</artifactId>
+      <version>1.0.0.v201011060100</version>
+    </dependency>
   </dependencies>
 </project>

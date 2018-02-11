@@ -18,12 +18,15 @@ import org.bytedeco.javacpp.opencv_xfeatures2d.SIFT;
 
 import fz.imt.LogoFinder;
 
+import javax.swing.*;
+
 import static org.bytedeco.javacpp.opencv_imgcodecs.*;
 import static org.bytedeco.javacpp.opencv_imgproc.resize;
 
 public class MainClass {
 
 	public static void main(String[] args) {
+
 		Loader.load(opencv_core.class);
 		System.out.println("Librairies charg�es !");
 		HashMap<Integer, String> mappingClass = new HashMap<>();
@@ -32,6 +35,8 @@ public class MainClass {
 		//SIFT PARAMETERS
 		fz.setSigma(1.4);
 		fz.setMaxWords(100);
+		fz.setVocabularyDir("vocabulary");
+		fz.setClassifierDir("classifier");
 
 		fz.train();
 		File cocaTrain = new File("coca_train.jpg");

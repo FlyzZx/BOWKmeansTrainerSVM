@@ -14,8 +14,12 @@ import org.bytedeco.javacpp.opencv_imgproc;
 import org.bytedeco.javacpp.opencv_ml;
 import org.bytedeco.javacpp.opencv_ml.SVM;
 import org.bytedeco.javacpp.opencv_xfeatures2d.SIFT;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +43,7 @@ public class LogoFinder {
 	private double sigma = 1.6;
 	private String vocabularyDir = "";
 	private String classifierDir = "";
+	private JSONObject indexJson = null;
 
 	public LogoFinder() {
 		this.rootDir = null;
@@ -93,7 +98,13 @@ public class LogoFinder {
 	}
 
 	public void train() {
-		buildVocabulary();
+	    this.indexJson = new JSONObject();
+        try {
+            indexJson.append("vocabulaire", "vocab.yml");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        buildVocabulary();
 		//showHist(this.vocabulary, "Vocabulaire");
 		Mat samples = new Mat();
 		BOWImgDescriptorExtractor extractor = new BOWImgDescriptorExtractor(
@@ -124,6 +135,7 @@ public class LogoFinder {
 		int indexStop = samples.rows();
 		String class_name = "";
 		int[] resp = new int[samples.rows()];
+		ArrayList<String> tmpList = new ArrayList<>();
 		for (File trainImg : this.rootDir.listFiles()) {
 
 			if (globalIndex != 0 && (!class_name.equals(trainImg.getName().split("_")[0])
@@ -131,6 +143,7 @@ public class LogoFinder {
 				File classLocation = new File(this.classifierDir + "/" + class_name + ".xml");
 				if(classLocation.exists()) {
 					System.out.println("Existing SVM for classe " + class_name);
+                    tmpList.add(this.classifierDir + "/" + class_name + ".xml");
 				} else {
 					System.out.println("Save SVM for classe " + class_name);
 					indexStop = globalIndex;
@@ -149,6 +162,7 @@ public class LogoFinder {
 					svm.setType(SVM.C_SVC);
 					svm.train(samples, opencv_ml.ROW_SAMPLE, labels);
 					svm.save(this.classifierDir + "/" + class_name + ".xml");
+					tmpList.add(this.classifierDir + "/" + class_name + ".xml");
 				}
 			}
 			if (!class_name.equals(trainImg.getName().split("_")[0])) {
@@ -158,7 +172,18 @@ public class LogoFinder {
 
 			globalIndex++;
 		}
-	}
+        try {
+            this.indexJson.append("classifiers", tmpList);
+            File fileIndex = new File("index.json");
+            FileWriter fw = new FileWriter(fileIndex);
+            fw.write(this.indexJson.toString());
+            fw.close();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
 	public String predict(String filePath) {
 		//On vérifie l'existence du vocabulaire

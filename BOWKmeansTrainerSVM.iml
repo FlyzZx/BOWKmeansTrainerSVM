@@ -31,5 +31,6 @@
     <orderEntry type="library" name="Maven: org.bytedeco.javacpp-presets:videoinput:0.200-1.4" level="project" />
     <orderEntry type="library" name="Maven: org.bytedeco.javacpp-presets:artoolkitplus:2.3.1-1.4" level="project" />
     <orderEntry type="library" name="Maven: org.bytedeco.javacpp-presets:flandmark:1.07-1.4" level="project" />
+    <orderEntry type="library" name="Maven: org.eclipse.ecf:org.json:1.0.0.v201011060100" level="project" />
   </component>
 </module>
