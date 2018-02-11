@@ -21,6 +21,7 @@ public class MainForm extends JPanel{
     private JTextField textField_indexJson;
     private JTextArea textArea_log;
     private JButton startTrainingButton;
+    private JScrollPane scrollPane;
 
     private String trainingPath, vocabularyPath, classifiersPath, indexJsonPath;
 
