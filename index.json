@@ -1,0 +1,17 @@
+{
+  "classifiers": [
+    [
+      "classifier/Coca.xml",
+      "classifier/Fanta.xml",
+      "classifier/Icetea.xml",
+      "classifier/Oasis.xml",
+      "classifier/Orangina.xml",
+      "classifier/Pepsi.xml",
+      "classifier/Schweppes.xml",
+      "classifier/Sprite.xml"
+    ]
+  ],
+  "vocabulaire": [
+    "vocab.yml"
+  ]
+}
