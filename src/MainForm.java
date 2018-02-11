@@ -1,11 +1,15 @@
 import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
 import com.sun.prism.paint.Paint;
+import fz.imt.LogoFinder;
+import fz.imt.java.utils.CustomOutputStream;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.PrintStream;
+import java.sql.Timestamp;
 
 public class MainForm extends JPanel{
 
@@ -17,6 +21,8 @@ public class MainForm extends JPanel{
     private JTextField textField_indexJson;
     private JTextArea textArea_log;
     private JButton startTrainingButton;
+
+    private String trainingPath, vocabularyPath, classifiersPath, indexJsonPath;
 
     public MainForm(JFrame frame) {
         this.frame = frame;
@@ -47,6 +53,10 @@ public class MainForm extends JPanel{
     }
 
     private void initializeComponents() {
+        textArea_log.setAutoscrolls(true);
+        PrintStream printStream = new PrintStream(new CustomOutputStream(textArea_log));
+        System.setOut(printStream);
+        System.setErr(printStream);
 
         textField_trainData.addMouseListener(new MouseAdapter() {
             @Override
@@ -56,7 +66,9 @@ public class MainForm extends JPanel{
                 jFileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
                 int ret = jFileChooser.showOpenDialog(MainForm.this);
                 if(ret == JFileChooser.APPROVE_OPTION) {
-                    textArea_log.append("Train Data filename : " + jFileChooser.getSelectedFile().getAbsolutePath() + "\n");
+                    System.out.println("Train Data filename : " + jFileChooser.getSelectedFile().getAbsolutePath());
+                    trainingPath = jFileChooser.getSelectedFile().getAbsolutePath();
+                    textField_trainData.setText(trainingPath);
                 }
             }
         });
@@ -66,10 +78,12 @@ public class MainForm extends JPanel{
             public void mouseClicked(MouseEvent e) {
                 JFileChooser jFileChooser = new JFileChooser();
                 jFileChooser.setDialogType(JFileChooser.SAVE_DIALOG);
-                jFileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                jFileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
                 int ret = jFileChooser.showOpenDialog(MainForm.this);
                 if(ret == JFileChooser.APPROVE_OPTION) {
-                    textArea_log.append("Vocabulary filename : " + jFileChooser.getSelectedFile().getAbsolutePath() + "\n");
+                    System.out.println("Vocabulary filename : " + jFileChooser.getSelectedFile().getAbsolutePath());
+                    vocabularyPath = jFileChooser.getSelectedFile().getAbsolutePath();
+                    textField_vocabulaire.setText(vocabularyPath);
                 }
             }
         });
@@ -82,7 +96,9 @@ public class MainForm extends JPanel{
                 jFileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
                 int ret = jFileChooser.showOpenDialog(MainForm.this);
                 if(ret == JFileChooser.APPROVE_OPTION) {
-                    textArea_log.append("Classifiers filename : " + jFileChooser.getSelectedFile().getAbsolutePath() + "\n");
+                    System.out.println("Classifiers filename : " + jFileChooser.getSelectedFile().getAbsolutePath());
+                    classifiersPath = jFileChooser.getSelectedFile().getAbsolutePath();
+                    textField_classifiers.setText(classifiersPath);
                 }
             }
         });
@@ -95,8 +111,7 @@ public class MainForm extends JPanel{
                 jFileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
                 int ret = jFileChooser.showOpenDialog(MainForm.this);
                 if(ret == JFileChooser.APPROVE_OPTION) {
-                    textArea_log.append("Index json filename : " + jFileChooser.getSelectedFile().getAbsolutePath() + "\n");
-                    //System.out.println("Index json filename : " + jFileChooser.getSelectedFile().getAbsolutePath());
+                    System.out.println("Index json filename : " + jFileChooser.getSelectedFile().getAbsolutePath());
                 }
             }
         });
@@ -104,7 +119,15 @@ public class MainForm extends JPanel{
         startTrainingButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                textArea_log.append("Starting training...\n");
+                //textArea_log.append("Starting training...\n");
+                long startMs = System.currentTimeMillis();
+                System.out.println("Starting training...");
+                LogoFinder logoFinder = new LogoFinder(trainingPath);
+                logoFinder.setVocabularyDir(vocabularyPath);
+                logoFinder.setClassifierDir(classifiersPath);
+                logoFinder.setMaxWords(50);
+                logoFinder.train();
+                System.out.println("Training completed in " + (System.currentTimeMillis() - startMs) + " ms");
             }
         });
     }
