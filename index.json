@@ -1,17 +1,1 @@
-{
-  "classifiers": [
-    [
-      "classifier/Coca.xml",
-      "classifier/Fanta.xml",
-      "classifier/Icetea.xml",
-      "classifier/Oasis.xml",
-      "classifier/Orangina.xml",
-      "classifier/Pepsi.xml",
-      "classifier/Schweppes.xml",
-      "classifier/Sprite.xml"
-    ]
-  ],
-  "vocabulaire": [
-    "vocab.yml"
-  ]
-}
+{"classifiers":[["C:\\Users\\Nico\\Desktop\\Classifiers/Coca.xml","C:\\Users\\Nico\\Desktop\\Classifiers/Pepsi.xml","C:\\Users\\Nico\\Desktop\\Classifiers/Sprite.xml"]],"vocabulaire":["vocab.yml"]}
