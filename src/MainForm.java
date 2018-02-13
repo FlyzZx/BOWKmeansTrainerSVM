@@ -22,6 +22,7 @@ public class MainForm extends JPanel{
     private JTextArea textArea_log;
     private JButton startTrainingButton;
     private JScrollPane scrollPane;
+    private JButton button_testPrediction;
 
     private String trainingPath, vocabularyPath, classifiersPath, indexJsonPath;
 
@@ -129,6 +130,20 @@ public class MainForm extends JPanel{
                 logoFinder.setMaxWords(50);
                 logoFinder.train();
                 System.out.println("Training completed in " + (System.currentTimeMillis() - startMs) + " ms");
+            }
+        });
+
+        button_testPrediction.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                long startMs = System.currentTimeMillis();
+                System.out.println("Starting prediction...");
+                LogoFinder logoFinder = new LogoFinder(trainingPath);
+                logoFinder.setVocabularyDir(vocabularyPath);
+                logoFinder.setClassifierDir(classifiersPath);
+                String pred = logoFinder.predict("Coca_10.jpg");
+                System.out.println("Prediction completed in " + (System.currentTimeMillis() - startMs) + " ms");
+                System.out.println("Oh shit, a " + pred + " !");
             }
         });
     }

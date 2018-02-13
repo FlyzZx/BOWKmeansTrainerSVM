@@ -1,17 +1,13 @@
 package fz.imt;
 
-import org.bytedeco.javacpp.IntPointer;
+import org.bytedeco.javacpp.*;
 import org.bytedeco.javacpp.indexer.FloatRawIndexer;
-import org.bytedeco.javacpp.opencv_core;
 import org.bytedeco.javacpp.opencv_core.FileStorage;
 import org.bytedeco.javacpp.opencv_core.KeyPointVector;
 import org.bytedeco.javacpp.opencv_core.Mat;
 import org.bytedeco.javacpp.opencv_features2d.BOWImgDescriptorExtractor;
 import org.bytedeco.javacpp.opencv_features2d.BOWKMeansTrainer;
 import org.bytedeco.javacpp.opencv_features2d.DescriptorMatcher;
-import org.bytedeco.javacpp.opencv_imgcodecs;
-import org.bytedeco.javacpp.opencv_imgproc;
-import org.bytedeco.javacpp.opencv_ml;
 import org.bytedeco.javacpp.opencv_ml.SVM;
 import org.bytedeco.javacpp.opencv_xfeatures2d.SIFT;
 import org.json.JSONException;
@@ -66,8 +62,7 @@ public class LogoFinder {
 			BOWKMeansTrainer trainer = new BOWKMeansTrainer(this.maxWords);
 			int i = 0;
 			for (File imgTrain : imagesTrain) {
-				Mat trainMat = opencv_imgcodecs.imread(imgTrain.getAbsolutePath());
-				opencv_imgproc.resize(trainMat, trainMat, new opencv_core.Size(500, 500));
+				Mat trainMat = opencv_imgcodecs.imread(imgTrain.getAbsolutePath(), opencv_imgcodecs.CV_LOAD_IMAGE_GRAYSCALE);
 				KeyPointVector keypoints = new KeyPointVector();
 				Mat descriptor = new Mat();
 				SIFT sift = SIFT.create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
@@ -107,24 +102,20 @@ public class LogoFinder {
         buildVocabulary();
 		//showHist(this.vocabulary, "Vocabulaire");
 		Mat samples = new Mat();
-		BOWImgDescriptorExtractor extractor = new BOWImgDescriptorExtractor(
-				DescriptorMatcher.create(DescriptorMatcher.FLANNBASED));
-		extractor.setVocabulary(this.vocabulary);
+
 
 		for (File trainImg : this.rootDir.listFiles()) {
-			Mat trainMat = opencv_imgcodecs.imread(trainImg.getAbsolutePath());
-			opencv_imgproc.resize(trainMat, trainMat, new opencv_core.Size(500, 500));
+			Mat trainMat = opencv_imgcodecs.imread(trainImg.getAbsolutePath(), opencv_imgcodecs.CV_LOAD_IMAGE_GRAYSCALE);
 			Mat descriptor = new Mat();
 			KeyPointVector keypoints = new KeyPointVector();
             SIFT sift = SIFT.create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
-			sift.detectAndCompute(trainMat, new Mat(), keypoints, descriptor);
-			BOWKMeansTrainer trainer = new BOWKMeansTrainer(this.maxWords);
-			trainer.add(descriptor);
-			System.out.println("Clustering features into words for " + trainImg.getName());
-			Mat clust = trainer.cluster();
+            BOWImgDescriptorExtractor extractor = new BOWImgDescriptorExtractor(sift, new opencv_features2d.FlannBasedMatcher());
+            extractor.setVocabulary(this.vocabulary);
+            sift.detect(trainMat, keypoints);
 			Mat histo = new Mat();
+			System.out.println("Computing words for " + trainImg.getName());
+            extractor.compute(trainMat, keypoints, histo, new opencv_core.IntVectorVector(), new Mat());
 
-			extractor.compute(clust, histo);
 			samples.push_back(histo);
 		}
 
@@ -199,26 +190,22 @@ public class LogoFinder {
 		}
 
 		//Chargement du vocabulaire en m�moire
-		BOWImgDescriptorExtractor extractor = new BOWImgDescriptorExtractor(
-				DescriptorMatcher.create(DescriptorMatcher.FLANNBASED));
+        SIFT sift = SIFT.create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
+		BOWImgDescriptorExtractor extractor = new BOWImgDescriptorExtractor(sift, new opencv_features2d.FlannBasedMatcher());
 		extractor.setVocabulary(this.vocabulary);
 
 		//Pr�diction
 		System.out.println("Predicting file " + filePath);
-		Mat testImg = opencv_imgcodecs.imread(filePath);
-		opencv_imgproc.resize(testImg, testImg, new opencv_core.Size(500, 500));
+		Mat testImg = opencv_imgcodecs.imread(filePath, opencv_imgcodecs.CV_LOAD_IMAGE_GRAYSCALE);
 		Mat descriptor = new Mat();
 		KeyPointVector keypoints = new KeyPointVector();
-        SIFT sift = SIFT.create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
+
 		System.out.println("Detecting features");
-		sift.detectAndCompute(testImg, new Mat(), keypoints, descriptor);
-		BOWKMeansTrainer trainer = new BOWKMeansTrainer(this.maxWords);
-		trainer.add(descriptor);
-		System.out.println("Clustering features into words");
-		Mat clust = trainer.cluster();
-		Mat histo = new Mat();
-		System.out.println("Calculate words frequencies's histogram");
-		extractor.compute(clust, histo);
+		sift.detect(testImg, keypoints);
+        System.out.println("Calculate words frequencies's histogram");
+        Mat histo = new Mat();
+        extractor.compute(testImg, keypoints, histo, new opencv_core.IntVectorVector(), new Mat());
+
 
         float minF = Float.MAX_VALUE;
         String bestMatch = null;
