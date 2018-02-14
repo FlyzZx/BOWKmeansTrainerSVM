@@ -56,9 +56,9 @@ public class MainForm extends JPanel{
 
     private void initializeComponents() {
         textArea_log.setAutoscrolls(true);
-        PrintStream printStream = new PrintStream(new CustomOutputStream(textArea_log));
+        /*PrintStream printStream = new PrintStream(new CustomOutputStream(textArea_log));
         System.setOut(printStream);
-        System.setErr(printStream);
+        System.setErr(printStream);*/
 
         textField_trainData.addMouseListener(new MouseAdapter() {
             @Override

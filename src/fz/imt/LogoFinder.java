@@ -102,17 +102,19 @@ public class LogoFinder {
         buildVocabulary();
 		//showHist(this.vocabulary, "Vocabulaire");
 		Mat samples = new Mat();
-
+		Mat histo = new Mat();
+		Mat trainMat;
+		SIFT sift = SIFT.create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
+		BOWImgDescriptorExtractor extractor = new BOWImgDescriptorExtractor(sift, new opencv_features2d.FlannBasedMatcher());
+		extractor.setVocabulary(this.vocabulary);
 
 		for (File trainImg : this.rootDir.listFiles()) {
-			Mat trainMat = opencv_imgcodecs.imread(trainImg.getAbsolutePath(), opencv_imgcodecs.CV_LOAD_IMAGE_GRAYSCALE);
-			Mat descriptor = new Mat();
+			trainMat = opencv_imgcodecs.imread(trainImg.getAbsolutePath(), opencv_imgcodecs.CV_LOAD_IMAGE_GRAYSCALE);
+
 			KeyPointVector keypoints = new KeyPointVector();
-            SIFT sift = SIFT.create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
-            BOWImgDescriptorExtractor extractor = new BOWImgDescriptorExtractor(sift, new opencv_features2d.FlannBasedMatcher());
-            extractor.setVocabulary(this.vocabulary);
+
             sift.detect(trainMat, keypoints);
-			Mat histo = new Mat();
+
 			System.out.println("Computing words for " + trainImg.getName());
             extractor.compute(trainMat, keypoints, histo, new opencv_core.IntVectorVector(), new Mat());
 
@@ -134,7 +136,7 @@ public class LogoFinder {
 				File classLocation = new File(this.classifierDir + "/" + class_name + ".xml");
 				if(classLocation.exists()) {
 					System.out.println("Existing SVM for classe " + class_name);
-                    tmpList.add(this.classifierDir + "/" + class_name + ".xml");
+                    tmpList.add("Classifiers/" + class_name + ".xml");
 				} else {
 					System.out.println("Save SVM for classe " + class_name);
 					indexStop = globalIndex;
@@ -153,7 +155,7 @@ public class LogoFinder {
 					svm.setType(SVM.C_SVC);
 					svm.train(samples, opencv_ml.ROW_SAMPLE, labels);
 					svm.save(this.classifierDir + "/" + class_name + ".xml");
-					tmpList.add(this.classifierDir + "/" + class_name + ".xml");
+					tmpList.add("Classifiers/" + class_name + ".xml");
 				}
 			}
 			if (!class_name.equals(trainImg.getName().split("_")[0])) {
