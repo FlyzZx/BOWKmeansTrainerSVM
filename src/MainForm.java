@@ -189,7 +189,5 @@ public class MainForm extends JPanel{
                 System.out.println("Error, can't login");
             }
         }
-
-
     }
 }
