@@ -14,6 +14,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.*;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.DigestInputStream;
@@ -56,10 +57,13 @@ public class LogoFinder {
 		MessageDigest md = null;
 		try {
 			md = MessageDigest.getInstance("MD5");
-			InputStream is = Files.newInputStream(Paths.get("file.txt"));
+			File inputFile = new File(path);
+			InputStream is = new FileInputStream(inputFile);
 			DigestInputStream dis = new DigestInputStream(is, md);
 			byte[] digest = md.digest();
-			return new String(digest);
+            BigInteger bigInt = new BigInteger(1,digest);
+            String hashtext = bigInt.toString(16);
+			return hashtext;
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -201,10 +205,20 @@ public class LogoFinder {
 		}
         try {
             this.indexJson.append("classifiers", tmpList);
-            File fileIndex = new File("index.json");
-            FileWriter fw = new FileWriter(fileIndex);
-            fw.write(this.indexJson.toString());
-            fw.close();
+            String hash = "";
+            File vocab = new File(this.vocabularyDir + "/vocab.yml");
+            if(vocab.exists()) {
+                System.out.println("Signing with md5");
+                hash = this.getHashMd5(vocab.getAbsolutePath());
+                this.indexJson.append("vocab_hash", hash);
+                File fileIndex = new File(this.vocabularyDir + "\\index.json");
+                FileWriter fw = new FileWriter(fileIndex);
+                fw.write(this.indexJson.toString());
+                fw.close();
+            } else {
+                System.out.println("Error when finalizing, please clear directory data and try again");
+            }
+
         } catch (JSONException e) {
             e.printStackTrace();
         } catch (IOException e) {

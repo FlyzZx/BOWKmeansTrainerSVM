@@ -122,7 +122,9 @@ public class MainForm extends JPanel{
             @Override
             public void mouseClicked(MouseEvent e) {
                 //textArea_log.append("Starting training...\n");
-
+                trainingPath = "D:\\UserData\\Documents\\IA\\BagOfWordsSIFT\\BagOfWordsSIFT\\TrainImage";
+                vocabularyPath = "D:\\UserData\\Documents\\IA\\Car200_2";
+                classifiersPath = "D:\\UserData\\Documents\\IA\\Car200_2\\Classifiers";
                 long startMs = System.currentTimeMillis();
                 System.out.println("Starting training...");
                 LogoFinder logoFinder = new LogoFinder(trainingPath);
@@ -138,15 +140,20 @@ public class MainForm extends JPanel{
             @Override
             public void mouseClicked(MouseEvent e) {
 
-
-                long startMs = System.currentTimeMillis();
+                trainingPath = "D:\\UserData\\Documents\\IA\\BagOfWordsSIFT\\BagOfWordsSIFT\\TrainImage";
+                vocabularyPath = "D:\\UserData\\Documents\\IA\\Car200_2";
+                classifiersPath = "D:\\UserData\\Documents\\IA\\Car200_2\\Classifiers";
+                LogoFinder logoFinder = new LogoFinder();
+                String md = logoFinder.getHashMd5(vocabularyPath + "\\vocab.yml");
+                System.out.println("Hash of vocab : " + md);
+                /*long startMs = System.currentTimeMillis();
                 System.out.println("Starting prediction...");
                 LogoFinder logoFinder = new LogoFinder(trainingPath);
                 logoFinder.setClassifierDir(classifiersPath);
                 logoFinder.setVocabularyDir(vocabularyPath);
                 //String pred = logoFinder.predict("Coca_10.jpg");
                 //System.out.println("Prediction completed in " + (System.currentTimeMillis() - startMs) + " ms");
-                //System.out.println("Oh shit, a " + pred + " !");
+                //System.out.println("Oh shit, a " + pred + " !");*/
             }
         });
     }
