@@ -59,7 +59,11 @@ public class LogoFinder {
 			System.out.println("Vocabulaire chargé !");
 		} else if (rootDir != null) {
 			File[] imagesTrain = rootDir.listFiles();
-			BOWKMeansTrainer trainer = new BOWKMeansTrainer(this.maxWords);
+			opencv_core.TermCriteria term = new opencv_core.TermCriteria();
+			term.type(opencv_core.TermCriteria.MAX_ITER);
+			term.epsilon(0.0001);
+			term.maxCount(100);
+			BOWKMeansTrainer trainer = new BOWKMeansTrainer(this.maxWords, term, 1, opencv_core.KMEANS_RANDOM_CENTERS);
 			int i = 0;
 			for (File imgTrain : imagesTrain) {
 				Mat trainMat = opencv_imgcodecs.imread(imgTrain.getAbsolutePath(), opencv_imgcodecs.CV_LOAD_IMAGE_GRAYSCALE);

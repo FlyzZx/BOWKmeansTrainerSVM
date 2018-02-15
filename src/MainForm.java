@@ -122,12 +122,13 @@ public class MainForm extends JPanel{
             @Override
             public void mouseClicked(MouseEvent e) {
                 //textArea_log.append("Starting training...\n");
+
                 long startMs = System.currentTimeMillis();
                 System.out.println("Starting training...");
                 LogoFinder logoFinder = new LogoFinder(trainingPath);
                 logoFinder.setVocabularyDir(vocabularyPath);
                 logoFinder.setClassifierDir(classifiersPath);
-                logoFinder.setMaxWords(50);
+                logoFinder.setMaxWords(200);
                 logoFinder.train();
                 System.out.println("Training completed in " + (System.currentTimeMillis() - startMs) + " ms");
             }
@@ -136,14 +137,16 @@ public class MainForm extends JPanel{
         button_testPrediction.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
+
+
                 long startMs = System.currentTimeMillis();
                 System.out.println("Starting prediction...");
                 LogoFinder logoFinder = new LogoFinder(trainingPath);
-                logoFinder.setVocabularyDir(vocabularyPath);
                 logoFinder.setClassifierDir(classifiersPath);
-                String pred = logoFinder.predict("Coca_10.jpg");
-                System.out.println("Prediction completed in " + (System.currentTimeMillis() - startMs) + " ms");
-                System.out.println("Oh shit, a " + pred + " !");
+                logoFinder.setVocabularyDir(vocabularyPath);
+                //String pred = logoFinder.predict("Coca_10.jpg");
+                //System.out.println("Prediction completed in " + (System.currentTimeMillis() - startMs) + " ms");
+                //System.out.println("Oh shit, a " + pred + " !");
             }
         });
     }
