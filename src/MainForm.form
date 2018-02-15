@@ -15,7 +15,7 @@
           </grid>
         </constraints>
         <properties>
-          <text value="D:\UserData\Images\DataImage"/>
+          <text value=""/>
         </properties>
       </component>
       <component id="788e5" class="javax.swing.JLabel">
@@ -51,7 +51,7 @@
           </grid>
         </constraints>
         <properties>
-          <text value="D:\UserData\Documents\IA\DataTrainBOW"/>
+          <text value=""/>
         </properties>
       </component>
       <component id="acb10" class="javax.swing.JTextField" binding="textField_classifiers">
@@ -61,7 +61,7 @@
           </grid>
         </constraints>
         <properties>
-          <text value="D:\UserData\Documents\IA\DataTrainBOW\Classifiers"/>
+          <text value=""/>
         </properties>
       </component>
       <component id="1b686" class="javax.swing.JLabel">
