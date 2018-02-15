@@ -13,9 +13,12 @@ import org.bytedeco.javacpp.opencv_xfeatures2d.SIFT;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,6 +50,23 @@ public class LogoFinder {
 
 	public LogoFinder(String rootDirPath) {
 		this.rootDir = new File(rootDirPath);
+	}
+
+	public String getHashMd5(String path) {
+		MessageDigest md = null;
+		try {
+			md = MessageDigest.getInstance("MD5");
+			InputStream is = Files.newInputStream(Paths.get("file.txt"));
+			DigestInputStream dis = new DigestInputStream(is, md);
+			byte[] digest = md.digest();
+			return new String(digest);
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		return "";
 	}
 
 	private Mat buildVocabulary() {
@@ -108,21 +128,31 @@ public class LogoFinder {
 		Mat samples = new Mat();
 		Mat histo = new Mat();
 		Mat trainMat;
+        String class_name = "";
 		SIFT sift = SIFT.create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
 		BOWImgDescriptorExtractor extractor = new BOWImgDescriptorExtractor(sift, new opencv_features2d.FlannBasedMatcher());
 		extractor.setVocabulary(this.vocabulary);
-
+        File classLocation = null;
 		for (File trainImg : this.rootDir.listFiles()) {
-			trainMat = opencv_imgcodecs.imread(trainImg.getAbsolutePath(), opencv_imgcodecs.CV_LOAD_IMAGE_GRAYSCALE);
+            if (!class_name.equals(trainImg.getName().split("_")[0])) {
+                class_name = trainImg.getName().split("_")[0];
+                classLocation = new File(this.classifierDir + "/" + class_name + ".xml");
+            }
 
-			KeyPointVector keypoints = new KeyPointVector();
+            if(classLocation != null && classLocation.exists()) {
+                System.out.println("Passing " + trainImg.getName() + ", class already exist in directory");
+            } else {
+                trainMat = opencv_imgcodecs.imread(trainImg.getAbsolutePath(), opencv_imgcodecs.CV_LOAD_IMAGE_GRAYSCALE);
 
-            sift.detect(trainMat, keypoints);
+                KeyPointVector keypoints = new KeyPointVector();
 
-			System.out.println("Computing words for " + trainImg.getName());
-            extractor.compute(trainMat, keypoints, histo, new opencv_core.IntVectorVector(), new Mat());
+                sift.detect(trainMat, keypoints);
 
-			samples.push_back(histo);
+                System.out.println("Computing words for " + trainImg.getName());
+                extractor.compute(trainMat, keypoints, histo, new opencv_core.IntVectorVector(), new Mat());
+
+                samples.push_back(histo);
+            }
 		}
 
 		//Fabrication des SVM avec les labels
@@ -130,14 +160,14 @@ public class LogoFinder {
 		int currentSvm = 0;
 		int indexStart = 0;
 		int indexStop = samples.rows();
-		String class_name = "";
+		class_name = "";
 		int[] resp = new int[samples.rows()];
 		ArrayList<String> tmpList = new ArrayList<>();
 		for (File trainImg : this.rootDir.listFiles()) {
 
 			if (globalIndex != 0 && (!class_name.equals(trainImg.getName().split("_")[0])
 					|| globalIndex == this.rootDir.listFiles().length - 1)) {
-				File classLocation = new File(this.classifierDir + "/" + class_name + ".xml");
+				classLocation = new File(this.classifierDir + "/" + class_name + ".xml");
 				if(classLocation.exists()) {
 					System.out.println("Existing SVM for classe " + class_name);
                     tmpList.add("Classifiers/" + class_name + ".xml");
