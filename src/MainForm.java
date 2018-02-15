@@ -2,13 +2,14 @@ import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
 import com.sun.prism.paint.Paint;
 import fz.imt.LogoFinder;
 import fz.imt.java.utils.CustomOutputStream;
+import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPFile;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
-import java.io.FilenameFilter;
-import java.io.PrintStream;
+import java.io.*;
+import java.net.SocketException;
 import java.sql.Timestamp;
 
 public class MainForm extends JPanel{
@@ -18,10 +19,14 @@ public class MainForm extends JPanel{
     private JTextField textField_trainData;
     private JTextField textField_vocabulaire;
     private JTextField textField_classifiers;
-    private JTextField textField_indexJson;
     private JTextArea textArea_log;
     private JButton startTrainingButton;
     private JScrollPane scrollPane;
+    private JCheckBox checkBox_ftp;
+    private JTextField textField_ftp_hote;
+    private JTextField textField_ftp_user;
+    private JPasswordField textField_ftp_passwd;
+    private JButton button_debug;
     private JButton button_testPrediction;
 
     private String trainingPath, vocabularyPath, classifiersPath, indexJsonPath;
@@ -105,19 +110,6 @@ public class MainForm extends JPanel{
             }
         });
 
-        textField_indexJson.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                JFileChooser jFileChooser = new JFileChooser();
-                jFileChooser.setDialogType(JFileChooser.SAVE_DIALOG);
-                jFileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-                int ret = jFileChooser.showOpenDialog(MainForm.this);
-                if(ret == JFileChooser.APPROVE_OPTION) {
-                    System.out.println("Index json filename : " + jFileChooser.getSelectedFile().getAbsolutePath());
-                }
-            }
-        });
-
         startTrainingButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -130,26 +122,72 @@ public class MainForm extends JPanel{
                 logoFinder.setClassifierDir(classifiersPath);
                 logoFinder.setMaxWords(200);
                 logoFinder.train();
+
                 System.out.println("Training completed in " + (System.currentTimeMillis() - startMs) + " ms");
+                if(checkBox_ftp.isSelected()) {
+                    sendToFtp(logoFinder);
+                }
             }
         });
 
-        button_testPrediction.addMouseListener(new MouseAdapter() {
+        button_debug.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-
                 LogoFinder logoFinder = new LogoFinder();
-                String md = logoFinder.getHashMd5(vocabularyPath + "\\vocab.yml");
-                System.out.println("Hash of vocab : " + md);
-                /*long startMs = System.currentTimeMillis();
-                System.out.println("Starting prediction...");
-                LogoFinder logoFinder = new LogoFinder(trainingPath);
-                logoFinder.setClassifierDir(classifiersPath);
-                logoFinder.setVocabularyDir(vocabularyPath);
-                //String pred = logoFinder.predict("Coca_10.jpg");
-                //System.out.println("Prediction completed in " + (System.currentTimeMillis() - startMs) + " ms");
-                //System.out.println("Oh shit, a " + pred + " !");*/
+                logoFinder.setVocabularyDir("D:\\UserData\\Documents\\IA\\Car200_2");
+                logoFinder.setClassifierDir("D:\\UserData\\Documents\\IA\\Car200_2\\Classifiers");
+                sendToFtp(logoFinder);
             }
         });
+    }
+
+    private void sendToFtp(LogoFinder logoFinder) {
+        System.out.println("Uploading to server...");
+        File vocabulary = new File(logoFinder.getVocabularyDir() + "\\vocab.yml");
+        File classifierDirs = new File(logoFinder.getClassifierDir());
+        File indexJson = new File(logoFinder.getVocabularyDir() + "\\index.json");
+
+        String host = textField_ftp_hote.getText();
+        String user = textField_ftp_user.getText();
+        String password = new String(textField_ftp_passwd.getPassword());
+
+        if(host.equals("") || user.equals("")) {
+            System.out.println("Wrong FTP host or username");
+        }
+
+        if(classifierDirs.listFiles().length > 0 && vocabulary.exists() && indexJson.exists()) {
+            System.out.println("Files found, starting upload");
+            FTPClient client = new FTPClient();
+            try {
+                client.connect(host);
+                client.login(user, password);
+
+                client.changeWorkingDirectory("/public_html");
+                FTPFile[] ftpFile = client.listFiles("Classifiers/");
+                for (FTPFile file : ftpFile) {
+                    client.deleteFile("Classifiers/" + file.getName());
+                }
+                client.deleteFile("index.json");
+                client.deleteFile("vocab.yml");
+                System.out.println("All files removed");
+
+                //Envois des nouveaux fichiers
+                FileInputStream inputStream = new FileInputStream(vocabulary);
+                client.storeFile("vocab.yml", inputStream);
+                inputStream = new FileInputStream(indexJson);
+                client.storeFile("index.json", inputStream);
+                client.changeWorkingDirectory("Classifiers/");
+                for(File classifier : classifierDirs.listFiles()) {
+                    inputStream = new FileInputStream(classifier);
+                    client.storeFile(classifier.getName(), inputStream);
+                }
+                System.out.println("All files updated");
+
+            } catch (SocketException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                System.out.println("Error, can't login");
+            }
+        }
     }
 }

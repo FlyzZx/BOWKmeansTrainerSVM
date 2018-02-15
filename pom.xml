@@ -32,5 +32,10 @@
       <artifactId>org.json</artifactId>
       <version>1.0.0.v201011060100</version>
     </dependency>
+    <dependency>
+      <groupId>org.kie.modules</groupId>
+      <artifactId>org-apache-commons-net</artifactId>
+      <version>6.5.0.Final</version>
+    </dependency>
   </dependencies>
 </project>
