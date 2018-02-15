@@ -1,17 +1,13 @@
 package fz.imt;
 
-import org.bytedeco.javacpp.IntPointer;
+import org.bytedeco.javacpp.*;
 import org.bytedeco.javacpp.indexer.FloatRawIndexer;
-import org.bytedeco.javacpp.opencv_core;
 import org.bytedeco.javacpp.opencv_core.FileStorage;
 import org.bytedeco.javacpp.opencv_core.KeyPointVector;
 import org.bytedeco.javacpp.opencv_core.Mat;
 import org.bytedeco.javacpp.opencv_features2d.BOWImgDescriptorExtractor;
 import org.bytedeco.javacpp.opencv_features2d.BOWKMeansTrainer;
 import org.bytedeco.javacpp.opencv_features2d.DescriptorMatcher;
-import org.bytedeco.javacpp.opencv_imgcodecs;
-import org.bytedeco.javacpp.opencv_imgproc;
-import org.bytedeco.javacpp.opencv_ml;
 import org.bytedeco.javacpp.opencv_ml.SVM;
 import org.bytedeco.javacpp.opencv_xfeatures2d.SIFT;
 import org.json.JSONException;
@@ -63,11 +59,14 @@ public class LogoFinder {
 			System.out.println("Vocabulaire chargé !");
 		} else if (rootDir != null) {
 			File[] imagesTrain = rootDir.listFiles();
-			BOWKMeansTrainer trainer = new BOWKMeansTrainer(this.maxWords);
+			opencv_core.TermCriteria term = new opencv_core.TermCriteria();
+			term.type(opencv_core.TermCriteria.MAX_ITER);
+			term.epsilon(0.0001);
+			term.maxCount(100);
+			BOWKMeansTrainer trainer = new BOWKMeansTrainer(this.maxWords, term, 1, opencv_core.KMEANS_RANDOM_CENTERS);
 			int i = 0;
 			for (File imgTrain : imagesTrain) {
-				Mat trainMat = opencv_imgcodecs.imread(imgTrain.getAbsolutePath());
-				opencv_imgproc.resize(trainMat, trainMat, new opencv_core.Size(500, 500));
+				Mat trainMat = opencv_imgcodecs.imread(imgTrain.getAbsolutePath(), opencv_imgcodecs.CV_LOAD_IMAGE_GRAYSCALE);
 				KeyPointVector keypoints = new KeyPointVector();
 				Mat descriptor = new Mat();
 				SIFT sift = SIFT.create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
@@ -107,24 +106,22 @@ public class LogoFinder {
         buildVocabulary();
 		//showHist(this.vocabulary, "Vocabulaire");
 		Mat samples = new Mat();
-		BOWImgDescriptorExtractor extractor = new BOWImgDescriptorExtractor(
-				DescriptorMatcher.create(DescriptorMatcher.FLANNBASED));
+		Mat histo = new Mat();
+		Mat trainMat;
+		SIFT sift = SIFT.create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
+		BOWImgDescriptorExtractor extractor = new BOWImgDescriptorExtractor(sift, new opencv_features2d.FlannBasedMatcher());
 		extractor.setVocabulary(this.vocabulary);
 
 		for (File trainImg : this.rootDir.listFiles()) {
-			Mat trainMat = opencv_imgcodecs.imread(trainImg.getAbsolutePath());
-			opencv_imgproc.resize(trainMat, trainMat, new opencv_core.Size(500, 500));
-			Mat descriptor = new Mat();
-			KeyPointVector keypoints = new KeyPointVector();
-            SIFT sift = SIFT.create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
-			sift.detectAndCompute(trainMat, new Mat(), keypoints, descriptor);
-			BOWKMeansTrainer trainer = new BOWKMeansTrainer(this.maxWords);
-			trainer.add(descriptor);
-			System.out.println("Clustering features into words for " + trainImg.getName());
-			Mat clust = trainer.cluster();
-			Mat histo = new Mat();
+			trainMat = opencv_imgcodecs.imread(trainImg.getAbsolutePath(), opencv_imgcodecs.CV_LOAD_IMAGE_GRAYSCALE);
 
-			extractor.compute(clust, histo);
+			KeyPointVector keypoints = new KeyPointVector();
+
+            sift.detect(trainMat, keypoints);
+
+			System.out.println("Computing words for " + trainImg.getName());
+            extractor.compute(trainMat, keypoints, histo, new opencv_core.IntVectorVector(), new Mat());
+
 			samples.push_back(histo);
 		}
 
@@ -143,7 +140,7 @@ public class LogoFinder {
 				File classLocation = new File(this.classifierDir + "/" + class_name + ".xml");
 				if(classLocation.exists()) {
 					System.out.println("Existing SVM for classe " + class_name);
-                    tmpList.add(this.classifierDir + "/" + class_name + ".xml");
+                    tmpList.add("Classifiers/" + class_name + ".xml");
 				} else {
 					System.out.println("Save SVM for classe " + class_name);
 					indexStop = globalIndex;
@@ -162,7 +159,7 @@ public class LogoFinder {
 					svm.setType(SVM.C_SVC);
 					svm.train(samples, opencv_ml.ROW_SAMPLE, labels);
 					svm.save(this.classifierDir + "/" + class_name + ".xml");
-					tmpList.add(this.classifierDir + "/" + class_name + ".xml");
+					tmpList.add("Classifiers/" + class_name + ".xml");
 				}
 			}
 			if (!class_name.equals(trainImg.getName().split("_")[0])) {
@@ -199,26 +196,22 @@ public class LogoFinder {
 		}
 
 		//Chargement du vocabulaire en m�moire
-		BOWImgDescriptorExtractor extractor = new BOWImgDescriptorExtractor(
-				DescriptorMatcher.create(DescriptorMatcher.FLANNBASED));
+        SIFT sift = SIFT.create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
+		BOWImgDescriptorExtractor extractor = new BOWImgDescriptorExtractor(sift, new opencv_features2d.FlannBasedMatcher());
 		extractor.setVocabulary(this.vocabulary);
 
 		//Pr�diction
 		System.out.println("Predicting file " + filePath);
-		Mat testImg = opencv_imgcodecs.imread(filePath);
-		opencv_imgproc.resize(testImg, testImg, new opencv_core.Size(500, 500));
+		Mat testImg = opencv_imgcodecs.imread(filePath, opencv_imgcodecs.CV_LOAD_IMAGE_GRAYSCALE);
 		Mat descriptor = new Mat();
 		KeyPointVector keypoints = new KeyPointVector();
-        SIFT sift = SIFT.create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
+
 		System.out.println("Detecting features");
-		sift.detectAndCompute(testImg, new Mat(), keypoints, descriptor);
-		BOWKMeansTrainer trainer = new BOWKMeansTrainer(this.maxWords);
-		trainer.add(descriptor);
-		System.out.println("Clustering features into words");
-		Mat clust = trainer.cluster();
-		Mat histo = new Mat();
-		System.out.println("Calculate words frequencies's histogram");
-		extractor.compute(clust, histo);
+		sift.detect(testImg, keypoints);
+        System.out.println("Calculate words frequencies's histogram");
+        Mat histo = new Mat();
+        extractor.compute(testImg, keypoints, histo, new opencv_core.IntVectorVector(), new Mat());
+
 
         float minF = Float.MAX_VALUE;
         String bestMatch = null;
