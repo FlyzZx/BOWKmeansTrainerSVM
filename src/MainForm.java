@@ -133,10 +133,11 @@ public class MainForm extends JPanel{
         button_debug.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                LogoFinder logoFinder = new LogoFinder();
+                LogoFinder logoFinder = new LogoFinder("D:\\UserData\\Documents\\Java_workspace\\BOWKmeansTrainerSVM\\TrainImage");
                 logoFinder.setVocabularyDir("D:\\UserData\\Documents\\IA\\Car200_2");
                 logoFinder.setClassifierDir("D:\\UserData\\Documents\\IA\\Car200_2\\Classifiers");
-                sendToFtp(logoFinder);
+                //sendToFtp(logoFinder);
+                logoFinder.train();
             }
         });
     }

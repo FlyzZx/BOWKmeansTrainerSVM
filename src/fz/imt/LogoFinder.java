@@ -1,5 +1,7 @@
 package fz.imt;
 
+import com.google.gson.Gson;
+import fz.imt.entity.ClasseInfo;
 import org.bytedeco.javacpp.*;
 import org.bytedeco.javacpp.indexer.FloatRawIndexer;
 import org.bytedeco.javacpp.opencv_core.FileStorage;
@@ -10,6 +12,7 @@ import org.bytedeco.javacpp.opencv_features2d.BOWKMeansTrainer;
 import org.bytedeco.javacpp.opencv_features2d.DescriptorMatcher;
 import org.bytedeco.javacpp.opencv_ml.SVM;
 import org.bytedeco.javacpp.opencv_xfeatures2d.SIFT;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -20,8 +23,10 @@ import java.nio.file.Paths;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 
 /**
@@ -123,7 +128,7 @@ public class LogoFinder {
 	public void train() {
 	    this.indexJson = new JSONObject();
         try {
-            indexJson.append("vocabulaire", "vocab.yml");
+            indexJson.put("vocabulaire", "vocab.yml");
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -166,15 +171,27 @@ public class LogoFinder {
 		int indexStop = samples.rows();
 		class_name = "";
 		int[] resp = new int[samples.rows()];
-		ArrayList<String> tmpList = new ArrayList<>();
-		for (File trainImg : this.rootDir.listFiles()) {
+        JSONArray jArrTmp = new JSONArray();
+        for (File trainImg : this.rootDir.listFiles()) {
 
 			if (globalIndex != 0 && (!class_name.equals(trainImg.getName().split("_")[0])
 					|| globalIndex == this.rootDir.listFiles().length - 1)) {
 				classLocation = new File(this.classifierDir + "/" + class_name + ".xml");
 				if(classLocation.exists()) {
 					System.out.println("Existing SVM for classe " + class_name);
-                    tmpList.add("Classifiers/" + class_name + ".xml");
+                    //Création objet
+                    try {
+                        Gson parser = new Gson();
+                        ClasseInfo infos = new ClasseInfo(class_name, "", class_name + ".xml");
+                        JSONObject tmpObj = new JSONObject();
+                        tmpObj.put("brandname", class_name);
+                        tmpObj.put("url", "");
+                        tmpObj.put("classifier", class_name + ".xml");
+                        indexJson.append("brands", tmpObj);
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
 				} else {
 					System.out.println("Save SVM for classe " + class_name);
 					indexStop = globalIndex;
@@ -193,8 +210,22 @@ public class LogoFinder {
 					svm.setType(SVM.C_SVC);
 					svm.train(samples, opencv_ml.ROW_SAMPLE, labels);
 					svm.save(this.classifierDir + "/" + class_name + ".xml");
-					tmpList.add("Classifiers/" + class_name + ".xml");
-				}
+
+					//Création objet
+                    try {
+                        Gson parser = new Gson();
+                        ClasseInfo infos = new ClasseInfo(class_name, "", class_name + ".xml");
+                        JSONObject tmpObj = new JSONObject();
+                        tmpObj.put("brandname", class_name);
+                        tmpObj.put("url", "");
+                        tmpObj.put("classifier", class_name + ".xml");
+                        indexJson.append("brands", tmpObj);
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+                }
 			}
 			if (!class_name.equals(trainImg.getName().split("_")[0])) {
 				class_name = trainImg.getName().split("_")[0];
@@ -204,13 +235,12 @@ public class LogoFinder {
 			globalIndex++;
 		}
         try {
-            this.indexJson.append("classifiers", tmpList);
             String hash = "";
             File vocab = new File(this.vocabularyDir + "/vocab.yml");
             if(vocab.exists()) {
                 System.out.println("Signing with md5");
                 hash = this.getHashMd5(vocab.getAbsolutePath());
-                this.indexJson.append("vocab_hash", hash);
+                this.indexJson.put("vocab_hash", hash);
                 File fileIndex = new File(this.vocabularyDir + "\\index.json");
                 FileWriter fw = new FileWriter(fileIndex);
                 fw.write(this.indexJson.toString());
@@ -280,7 +310,7 @@ public class LogoFinder {
 		return bestMatch;
 	}
 
-	public File getRootDir() {
+    public File getRootDir() {
 		return rootDir;
 	}
 

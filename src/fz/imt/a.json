@@ -1,0 +1,21 @@
+{
+  "brands": [
+    {
+      "classifier": "Coca.xml",
+      "brandname": "Coca",
+      "url": ""
+    },
+    {
+      "classifier": "Pepsi.xml",
+      "brandname": "Pepsi",
+      "url": ""
+    },
+    {
+      "classifier": "Sprite.xml",
+      "brandname": "Sprite",
+      "url": ""
+    }
+  ],
+  "vocabulaire": "vocab.yml",
+  "vocab_hash": "d41d8cd98f00b204e9800998ecf8427e"
+}
