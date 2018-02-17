@@ -171,7 +171,6 @@ public class LogoFinder {
 		int indexStop = samples.rows();
 		class_name = "";
 		int[] resp = new int[samples.rows()];
-        JSONArray jArrTmp = new JSONArray();
         for (File trainImg : this.rootDir.listFiles()) {
 
 			if (globalIndex != 0 && (!class_name.equals(trainImg.getName().split("_")[0])
@@ -181,8 +180,6 @@ public class LogoFinder {
 					System.out.println("Existing SVM for classe " + class_name);
                     //Création objet
                     try {
-                        Gson parser = new Gson();
-                        ClasseInfo infos = new ClasseInfo(class_name, "", class_name + ".xml");
                         JSONObject tmpObj = new JSONObject();
                         tmpObj.put("brandname", class_name);
                         tmpObj.put("url", "");
@@ -213,14 +210,11 @@ public class LogoFinder {
 
 					//Création objet
                     try {
-                        Gson parser = new Gson();
-                        ClasseInfo infos = new ClasseInfo(class_name, "", class_name + ".xml");
                         JSONObject tmpObj = new JSONObject();
                         tmpObj.put("brandname", class_name);
                         tmpObj.put("url", "");
                         tmpObj.put("classifier", class_name + ".xml");
                         indexJson.append("brands", tmpObj);
-
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
