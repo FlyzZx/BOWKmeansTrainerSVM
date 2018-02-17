@@ -170,6 +170,7 @@ public class LogoFinder {
 		int indexStart = 0;
 		int indexStop = samples.rows();
 		class_name = "";
+		JSONArray jsonArrayTmp = new JSONArray();
 		int[] resp = new int[samples.rows()];
         for (File trainImg : this.rootDir.listFiles()) {
 
@@ -184,7 +185,7 @@ public class LogoFinder {
                         tmpObj.put("brandname", class_name);
                         tmpObj.put("url", "");
                         tmpObj.put("classifier", class_name + ".xml");
-                        indexJson.append("brands", tmpObj);
+                        jsonArrayTmp.put(tmpObj);
 
                     } catch (JSONException e) {
                         e.printStackTrace();
@@ -214,7 +215,8 @@ public class LogoFinder {
                         tmpObj.put("brandname", class_name);
                         tmpObj.put("url", "");
                         tmpObj.put("classifier", class_name + ".xml");
-                        indexJson.append("brands", tmpObj);
+                        jsonArrayTmp.put(tmpObj);
+
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
@@ -229,6 +231,7 @@ public class LogoFinder {
 			globalIndex++;
 		}
         try {
+            indexJson.put("brands", jsonArrayTmp);
             String hash = "";
             File vocab = new File(this.vocabularyDir + "/vocab.yml");
             if(vocab.exists()) {
