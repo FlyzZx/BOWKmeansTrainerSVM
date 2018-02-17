@@ -17,13 +17,11 @@ import org.bytedeco.javacpp.opencv_xfeatures2d.SIFT;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import sun.security.provider.MD5;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.math.BigInteger;
+import java.nio.file.Files;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -58,24 +56,32 @@ public class LogoFinder {
         this.rootDir = new File(rootDirPath);
     }
 
-    public String getHashMd5(String path) {
-        MessageDigest md = null;
-        try {
-            md = MessageDigest.getInstance("MD5");
-            File inputFile = new File(path);
-            InputStream is = new FileInputStream(inputFile);
-            DigestInputStream dis = new DigestInputStream(is, md);
-            byte[] digest = md.digest();
-            BigInteger bigInt = new BigInteger(1, digest);
-            String hashtext = bigInt.toString(16);
-            return hashtext;
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+    private static String encode(String password) {
+        byte[] uniqueKey = password.getBytes();
+        byte[] hash      = null;
+
+        try
+        {
+            hash = MessageDigest.getInstance("MD5").digest(uniqueKey);
+        }
+        catch (NoSuchAlgorithmException e)
+        {
+            throw new Error("No MD5 support in this VM.");
         }
 
-        return "";
+        StringBuilder hashString = new StringBuilder();
+        for (int i = 0; i < hash.length; i++)
+        {
+            String hex = Integer.toHexString(hash[i]);
+            if (hex.length() == 1)
+            {
+                hashString.append('0');
+                hashString.append(hex.charAt(hex.length() - 1));
+            }
+            else
+                hashString.append(hex.substring(hex.length() - 2));
+        }
+        return hashString.toString();
     }
 
     private Mat buildVocabulary() {
@@ -235,7 +241,11 @@ public class LogoFinder {
             File vocab = new File(this.vocabularyDir + "/vocab.yml");
             if (vocab.exists()) {
                 System.out.println("Signing with md5");
-                hash = this.getHashMd5(vocab.getAbsolutePath());
+                char[] dataVocab = new char[(int) vocab.length()];
+                FileReader reader = new FileReader(vocab);
+                reader.read(dataVocab, 0, dataVocab.length);
+                String vocabTmp = new String(dataVocab);
+                hash = encode(vocabTmp);
                 this.indexJson.put("vocab_hash", hash);
                 File fileIndex = new File(this.vocabularyDir + "\\index.json");
                 FileWriter fw = new FileWriter(fileIndex);
