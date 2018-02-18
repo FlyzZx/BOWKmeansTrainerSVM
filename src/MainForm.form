@@ -158,13 +158,13 @@
           <text value="BOW Kmeans Trainer with SVM"/>
         </properties>
       </component>
-      <component id="be98c" class="javax.swing.JButton" binding="button_debug">
+      <component id="be98c" class="javax.swing.JButton" binding="button_tchoin">
         <constraints>
           <grid row="6" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
         </constraints>
         <properties>
           <enabled value="true"/>
-          <text value="Debug"/>
+          <text value="Tchoin"/>
         </properties>
       </component>
     </children>

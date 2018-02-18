@@ -1,7 +1,4 @@
-import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
-import com.sun.prism.paint.Paint;
 import fz.imt.LogoFinder;
-import fz.imt.java.utils.CustomOutputStream;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 
@@ -10,7 +7,9 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.net.SocketException;
-import java.sql.Timestamp;
+import java.nio.file.CopyOption;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class MainForm extends JPanel{
 
@@ -26,7 +25,7 @@ public class MainForm extends JPanel{
     private JTextField textField_ftp_hote;
     private JTextField textField_ftp_user;
     private JPasswordField textField_ftp_passwd;
-    private JButton button_debug;
+    private JButton button_tchoin;
     private JButton button_testPrediction;
 
     private String trainingPath, vocabularyPath, classifiersPath, indexJsonPath;
@@ -120,7 +119,7 @@ public class MainForm extends JPanel{
                 LogoFinder logoFinder = new LogoFinder(trainingPath);
                 logoFinder.setVocabularyDir(vocabularyPath);
                 logoFinder.setClassifierDir(classifiersPath);
-                logoFinder.setMaxWords(200);
+                logoFinder.setMaxWords(500);
                 logoFinder.train();
 
                 System.out.println("Training completed in " + (System.currentTimeMillis() - startMs) + " ms");
@@ -130,14 +129,43 @@ public class MainForm extends JPanel{
             }
         });
 
-        button_debug.addMouseListener(new MouseAdapter() {
+        button_tchoin.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                LogoFinder logoFinder = new LogoFinder("D:\\UserData\\Documents\\Java_workspace\\BOWKmeansTrainerSVM\\TrainImage");
-                logoFinder.setVocabularyDir("D:\\UserData\\Documents\\IA\\Car200_2");
-                logoFinder.setClassifierDir("D:\\UserData\\Documents\\IA\\Car200_2\\Classifiers");
-                //sendToFtp(logoFinder);
-                logoFinder.train();
+                JFileChooser jFileChooser = new JFileChooser();
+                jFileChooser.setDialogType(JFileChooser.SAVE_DIALOG);
+                jFileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                int ret = jFileChooser.showOpenDialog(MainForm.this);
+                if(ret == JFileChooser.APPROVE_OPTION) {
+                    System.out.println("Making folder : " + jFileChooser.getSelectedFile().getAbsolutePath());
+                    File rootDir = jFileChooser.getSelectedFile();
+                    File destDir = new File(rootDir + "/Output");
+                    if(destDir.exists()) destDir.mkdir();
+                    if(!destDir.exists()) destDir.mkdir();
+                    for(File classDir : rootDir.listFiles()) {
+                        String class_name = classDir.getName();
+                        if(!class_name.equals("Output")) {
+                            int i = 1;
+                            for(File trainImg : classDir.listFiles()) {
+
+                                try {
+                                    File out = new File(destDir.getAbsolutePath() + "/" +  class_name + "_" + i + ".jpg");
+                                    OutputStream outFile = new FileOutputStream(out);
+                                    Files.copy(Paths.get(trainImg.getAbsolutePath()), outFile);
+                                    outFile.close();
+                                    //trainImg.renameTo(new File(destDir.getAbsolutePath() + "/" +  class_name + "_" + i + ".jpg"));
+                                    i++;
+                                } catch (FileNotFoundException e1) {
+                                    e1.printStackTrace();
+                                } catch (IOException e1) {
+                                    e1.printStackTrace();
+                                }
+
+                            }
+                            i = 1;
+                        }
+                    }
+                }
             }
         });
     }
