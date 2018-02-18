@@ -192,9 +192,9 @@ public class MainForm extends JPanel{
                 client.login(user, password);
 
                 client.changeWorkingDirectory("/public_html");
-                FTPFile[] ftpFile = client.listFiles("Classifiers/");
+                FTPFile[] ftpFile = client.listFiles("classifiers/");
                 for (FTPFile file : ftpFile) {
-                    client.deleteFile("Classifiers/" + file.getName());
+                    client.deleteFile("classifiers/" + file.getName());
                 }
                 client.deleteFile("index.json");
                 client.deleteFile("vocab.yml");
@@ -205,7 +205,7 @@ public class MainForm extends JPanel{
                 client.storeFile("vocab.yml", inputStream);
                 inputStream = new FileInputStream(indexJson);
                 client.storeFile("index.json", inputStream);
-                client.changeWorkingDirectory("Classifiers/");
+                client.changeWorkingDirectory("classifiers/");
                 for(File classifier : classifierDirs.listFiles()) {
                     inputStream = new FileInputStream(classifier);
                     client.storeFile(classifier.getName(), inputStream);
